@@ -1,4 +1,4 @@
-# Start from CircleCi image with Node 6, yarn and Chrome
+# Start from CircleCI image with Node 6, Yarn, Chrome...
 FROM circleci/node:6-stretch-browsers
 
 ARG RANCHER_CLI_VERSION=v0.6.4

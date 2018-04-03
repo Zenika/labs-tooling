@@ -1,3 +1,7 @@
-# labs-circleci
+# Labs Tooling
 
-This repository contains Dockerfiles used at Zenika Labs for CI/CD with CircleCI.
+This repository is dedicated to sharing tools used and/or developed at [Zenika Labs](https://zenika.github.io/labs).
+
+Each directory contains a tool or a guide with a corresponding README.
+
+Pull requests are welcome!
