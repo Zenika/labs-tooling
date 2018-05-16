@@ -170,8 +170,60 @@ In your DNS configuration, you need to following `A` record:
 We use [AWS Route 53](https://console.aws.amazon.com/route53/home#hosted-zones:) to manage our domains.
 
 
+## 4. Generate SSL Certificates with Let's Encrypt (optional)
 
-## 4. Docker Registry
+Traefik can generate a Let's Encrypt wildcard SSL certificate for you, provided it can modify your DNS configuration to respond to Let's Encrypt challenge.
+
+### Create a Traefik user on AWS
+
+In the [IAM Users dashboard](https://console.aws.amazon.com/iam/home?region=eu-central-1#/users), click on `Add user`.
+
+Name it as you like, tick `Programmatic access` and go to the next screen.
+
+Give it the `Route53 Full Access` policy in the `Attach existing policies directly` tab.
+
+Validate, review and click on `Create user`.
+
+In the next screen, write down the `Access key ID` and `Secret access key`. These will allow Traefik to use the AWS API.
+
+
+### Redeploy Traefik in Rancher
+
+In Rancher, delete the previous `traefik` stack, then click on `Add Stack` in `Stacks > User`. Use the following Docker Compose file as configuration.
+
+Substitute:
+- `<RANCHER_URL>` with Rancher's URL.
+- `<RANCHER_ACCESS_KEY>` with Traefik's Access key to Rancher (same as before).
+- `<RANCHER_SECRET_KEY>` with Traefik's Secret key to rancher (same as before).
+- `<AWS_ACCESS_KEY>` with Traefik's Access key to AWS (created in the previous step).
+- `<AWS_SECRET_KEY>` with Traefik's Secret key to AWS (created in the previous step).
+- `<AWS_REGION>` the code of your AWS region (can be found in the url when editing your DNS configuration).
+- `<AWS_HOSTED_ZONE_ID>` the id of your Route53 Hosted Zone (can be found in the url when editing your DNS configuration).
+- `<EMAIL>` the email address to register with the SSL certificate.
+- `<PROJECT_SUBDOMAIN>` the domain you chose before.
+
+```yaml
+version: '2'
+services:
+  traefik:
+    image: traefik:1.6
+    command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY> --entryPoints='Name:http Address::80 Redirect.EntryPoint:https' --entryPoints='Name:https Address::443 TLS' --defaultentrypoints='https,http' --acme --acme.entrypoint=https --acme.email=<EMAIL> --acme.storage=acme.json --acme.dnsChallenge --acme.dnsChallenge.provider=route53 --acme.domains='*.<PROJECT_SUBDOMAIN>'
+    environment:
+      - "AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY>"
+      - "AWS_HOSTED_ZONE_ID: <AWS_HOSTED_ZONE_ID>"
+      - "AWS_REGION: <AWS_REGION>"
+      - "AWS_SECRET_ACCESS_KEY: <AWS_SECRET_KEY>"
+    volumes:
+      - /acme.json:/acme.json
+    ports:
+      - 80:80
+      - 443:443
+    labels:
+      - "io.rancher.scheduler.affinity:host_label=traefik_lb=true"
+```
+
+
+## 5. Docker Registry
 
 ### Add container registry permissions for the Rancher user on AWS
 
@@ -222,7 +274,7 @@ In Rancher, open the catalog via `Catalog > All` and search for `ECR Credential 
 
 
 
-## 5. Continuous integration
+## 6. Continuous integration
 
 ### Add a CircleCI build configuration to your project
 
