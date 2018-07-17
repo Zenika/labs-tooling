@@ -147,7 +147,7 @@ Substitute:
 version: '2'
 services:
   traefik:
-    image: traefik:1.6
+    image: traefik:1.6.5
     command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY>
     labels:
       - "io.rancher.scheduler.affinity:host_label=traefik_lb=true"
@@ -206,15 +206,15 @@ Substitute:
 version: '2'
 services:
   traefik:
-    image: traefik:1.6
-    command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY> --entryPoints='Name:http Address::80 Redirect.EntryPoint:https' --entryPoints='Name:https Address::443 TLS' --defaultentrypoints='https,http' --acme --acme.entrypoint=https --acme.email=<EMAIL> --acme.storage=acme.json --acme.dnsChallenge --acme.dnsChallenge.provider=route53 --acme.domains='*.<PROJECT_SUBDOMAIN>'
+    image: traefik:1.6.5
+    command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY> --entryPoints='Name:http Address::80 Redirect.EntryPoint:https' --entryPoints='Name:https Address::443 TLS' --defaultentrypoints='https,http' --acme --acme.entrypoint=https --acme.email=<EMAIL> --acme.storage=acme/acme.json --acme.dnsChallenge --acme.dnsChallenge.provider=route53 --acme.domains='*.<PROJECT_SUBDOMAIN>'
     environment:
       - "AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY>"
       - "AWS_HOSTED_ZONE_ID: <AWS_HOSTED_ZONE_ID>"
       - "AWS_REGION: <AWS_REGION>"
       - "AWS_SECRET_ACCESS_KEY: <AWS_SECRET_KEY>"
     volumes:
-      - /acme.json:/acme.json
+      - /home/acme:/acme
     ports:
       - 80:80
       - 443:443
@@ -324,7 +324,6 @@ Relaunch the build.
 ## Next steps
 
 We are currently working on the following improvements:
-- Use Traefik to generate SSL certificates automatically with Let's Encrypt.
 - Use Traefik in cluster mode to avoid assigning it to a single host (single point of failure)
 - Provide a way to delete stacks automatically when the corresponding branch is deleted
 - Migrate to Rancher 2.0 (over a Kubernetes cluster)
