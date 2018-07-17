@@ -4,7 +4,7 @@ services:
     labels:
       - "io.rancher.scheduler.global=true"
     tty: true
-    image: google/cadvisor:latest
+    image: google/cadvisor:v0.30.2
     stdin_open: true
     volumes:
       - "/:/rootfs:ro"
@@ -16,7 +16,7 @@ services:
     labels:
       - "io.rancher.scheduler.global=true"
     tty: true
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v0.15.2
     stdin_open: true
 
   prom-conf:

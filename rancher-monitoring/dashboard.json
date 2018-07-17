@@ -2,7 +2,7 @@
   "annotations": {
     "list": [
       {
-        "$$hashKey": "object:5894",
+        "$$hashKey": "object:581",
         "builtIn": 1,
         "datasource": "-- Grafana --",
         "enable": true,
@@ -17,8 +17,8 @@
   "editable": true,
   "gnetId": 893,
   "graphTooltip": 1,
-  "id": 17,
-  "iteration": 1524002474173,
+  "id": 16,
+  "iteration": 1531822277002,
   "links": [],
   "panels": [
     {
@@ -65,7 +65,6 @@
       "id": 24,
       "interval": null,
       "links": [],
-      "mappingType": 1,
       "mappingTypes": [
         {
           "name": "value to text",
@@ -309,7 +308,7 @@
             "query": {
               "params": [
                 "A",
-                "1m",
+                "5m",
                 "now"
               ]
             },
@@ -842,7 +841,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 5,
       "scopedVars": {
         "server": {
@@ -939,7 +938,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 5,
       "scopedVars": {
         "server": {
@@ -1036,7 +1035,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 5,
       "scopedVars": {
         "server": {
@@ -1235,7 +1234,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 20,
       "scopedVars": {
         "server": {
@@ -1338,7 +1337,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 20,
       "scopedVars": {
         "server": {
@@ -1441,7 +1440,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 20,
       "scopedVars": {
         "server": {
@@ -1636,7 +1635,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 65,
       "scopedVars": {
         "server": {
@@ -1734,7 +1733,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 65,
       "scopedVars": {
         "server": {
@@ -1832,7 +1831,7 @@
       "renderer": "flot",
       "repeat": null,
       "repeatDirection": "h",
-      "repeatIteration": 1524002474173,
+      "repeatIteration": 1531822277002,
       "repeatPanelId": 65,
       "scopedVars": {
         "server": {
@@ -2090,7 +2089,7 @@
       ]
     }
   ],
-  "refresh": "1m",
+  "refresh": "5s",
   "schemaVersion": 16,
   "style": "dark",
   "tags": [],
@@ -2141,7 +2140,7 @@
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -2172,5 +2171,5 @@
   "timezone": "browser",
   "title": "Rancher",
   "uid": "gwVzKUgiz",
-  "version": 20
+  "version": 3
 }
