@@ -1,5 +1,5 @@
 # Start from CircleCI image with Node 6, Yarn, Chrome...
-FROM circleci/node:6-stretch-browsers
+FROM circleci/node:9-stretch-browsers
 
 ARG RANCHER_CLI_VERSION=v0.6.4
 ARG RANCHER_COMPOSE_VERSION=v0.12.5

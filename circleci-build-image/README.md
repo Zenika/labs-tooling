@@ -4,7 +4,7 @@ This repository contains the Dockerfile used to build the
 [zenikalabs/circleci](https://hub.docker.com/r/zenikalabs/circleci/) Docker image. 
 
 This image contains all the binaries we need to build, test and deploy project in CircleCI:
-- Node 6.x
+- Node 9.x
 - Yarn 1.x
 - Java 8 JDK
 - Maven
