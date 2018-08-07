@@ -209,10 +209,10 @@ services:
     image: traefik:1.6.5
     command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY> --entryPoints='Name:http Address::80 Redirect.EntryPoint:https' --entryPoints='Name:https Address::443 TLS' --defaultentrypoints='https,http' --acme --acme.entrypoint=https --acme.email=<EMAIL> --acme.storage=acme/acme.json --acme.dnsChallenge --acme.dnsChallenge.provider=route53 --acme.domains='*.<PROJECT_SUBDOMAIN>'
     environment:
-      - "AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY>"
-      - "AWS_HOSTED_ZONE_ID: <AWS_HOSTED_ZONE_ID>"
-      - "AWS_REGION: <AWS_REGION>"
-      - "AWS_SECRET_ACCESS_KEY: <AWS_SECRET_KEY>"
+      - "AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY>"
+      - "AWS_HOSTED_ZONE_ID=<AWS_HOSTED_ZONE_ID>"
+      - "AWS_REGION=<AWS_REGION>"
+      - "AWS_SECRET_ACCESS_KEY=<AWS_SECRET_KEY>"
     volumes:
       - /home/acme:/acme
     ports:
