@@ -110,7 +110,7 @@ In the next screen, choose:
 - the availability zone (pick any)
 - VPC/Subnet (there should be only one choice)
 
-In the next screen, choose the standard security group (more on this later).
+In the next screen, choose the standard security group (`rancher-machine`).
 
 In the next screen, choose at least:
 - name (the name prefix for your hosts)
@@ -118,6 +118,31 @@ In the next screen, choose at least:
 - root size (this disk size)
 
 Validate your choices by clicking on `Create`.
+
+
+### (Optional) Update Docker version if necessary.
+
+If you wish for a more recent version of Docker (the default one is 1.12.6), apply the following method for each host. The most recent version of Docker compatible with this version of Rancher is `17.03.2`.
+
+In Rancher, evacuate the host using its dropdown option menu in `Infrastructure > Hosts`.
+
+In Rancher, download the host's machine config via its dropdown option menu in `Infrastructure > Hosts`. Extract the `id_rsa` file located in `<SOME ID>/machines/<HOST NAME>/`.
+
+Connect to the host with SSH: `ssh -i id_rsa ubuntu@<HOST_IP>`. The host IP is visible in `Infrastructure > Hosts`.
+
+To install the latest version of Docker, follow the [official installation instructions](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-docker-ce):
+
+```bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+sudo apt-get update
+sudo apt-get install docker-ce=17.03.2~ce-0~ubuntu-xenial
+```
+
+In Rancher, activate the host using its dropdown option menu in `Infrastructure > Hosts`.
 
 
 
@@ -156,6 +181,13 @@ services:
 ```
 
 The `io.rancher.scheduler.affinity:host_label=traefik_lb=true` label on the `traefik` service will ensure that it is always deployed on the host with IP `<TRAEFIK_IP>`.
+
+
+### Open port 80 of Rancher hosts
+
+Click on `Security Groups` on the [EC2 Elastic IP Dashboard](https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#Addresses:sort=PublicIp).
+
+Edit the inbound rules of the `rancher-machine` and make port 80 accessible from anywhere.
 
 
 ### Configure your DNS to redirect a subdomain to Traefik
@@ -221,6 +253,13 @@ services:
     labels:
       - "io.rancher.scheduler.affinity:host_label=traefik_lb=true"
 ```
+
+
+### Open port 443 of Rancher hosts
+
+Click on `Security Groups` on the [EC2 Elastic IP Dashboard](https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#Addresses:sort=PublicIp).
+
+Edit the inbound rules of the `rancher-machine` and make port 443 accessible from anywhere.
 
 
 ## 5. Docker Registry
