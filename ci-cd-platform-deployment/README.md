@@ -122,7 +122,7 @@ Validate your choices by clicking on `Create`.
 
 ### (Optional) Update Docker version if necessary.
 
-If you wish for a more recent version of Docker (the default one is 1.12.6), apply the following method for each host. The most recent version of Docker compatible with this version of Rancher is `17.03.2`.
+If you wish for a more recent version of Docker (the default one is `1.12.6`), apply the following method for each host. The most recent version of Docker compatible with this version of Rancher is `17.03.2`.
 
 In Rancher, evacuate the host using its dropdown option menu in `Infrastructure > Hosts`.
 
@@ -187,7 +187,7 @@ The `io.rancher.scheduler.affinity:host_label=traefik_lb=true` label on the `tra
 
 Click on `Security Groups` on the [EC2 Elastic IP Dashboard](https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#Addresses:sort=PublicIp).
 
-Edit the inbound rules of the `rancher-machine` and make port 80 accessible from anywhere.
+Edit the inbound rules of the `rancher-machine` and make port `80` accessible from anywhere.
 
 
 ### Configure your DNS to redirect a subdomain to Traefik
@@ -259,7 +259,7 @@ services:
 
 Click on `Security Groups` on the [EC2 Elastic IP Dashboard](https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#Addresses:sort=PublicIp).
 
-Edit the inbound rules of the `rancher-machine` and make port 443 accessible from anywhere.
+Edit the inbound rules of the `rancher-machine` and make port `443` accessible from anywhere.
 
 
 ## 5. Docker Registry
