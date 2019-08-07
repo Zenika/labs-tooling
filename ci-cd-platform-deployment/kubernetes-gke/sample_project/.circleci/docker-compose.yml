@@ -1,0 +1,9 @@
+version: '2'
+services:
+
+  front:
+    image: <REPOSITORY_URI>:${VERSION}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=80"
+      - "traefik.frontend.rule=Host:${STACK_NAME}.<PROJECT_SUBDOMAIN>"
