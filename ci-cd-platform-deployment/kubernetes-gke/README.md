@@ -1,46 +1,48 @@
 # CI/CD Platform Deployment
 
-This guide describe the *feature branch* workflow we now use everyday, based on Google's managed Kubernetes (GKE).
-Each new feature is implemented in a new branch. As shown in the provided [sample project](sample_project), our CI/CD
-pipeline allows us to create and maintain an application instance per feature, accessible from anywhere and at anytime.
+This guide describes the *feature branch* workflow we now use everyday, based on Google's managed Kubernetes (GKE).
+Each of our projects has its own namespace in Kubernetes. Every new feature is implemented in a new branch.
+As shown in the provided [sample project](sample_project), our CI/CD pipeline allows us to create and maintain an
+application instance per feature branch, accessible from anywhere (web) and at anytime.
 This scheme goes in the direction of our *Definition of Done*, which requires a code review and a validation from a
-Product Owner before deploying to production.
+Product Owner on a production-like environment before deploying to production.
 
-The following guide contains a lot of data and commands extracted from the following resources:
+The following guide contains a lot of data and commands gathered from the following resources:
 - [Kubernetes' Quickstart](https://cloud.google.com/kubernetes-engine/docs/quickstart)
-- [Traefik's Kubernetes User Guide](https://docs.traefik.io/user-guide/kubernetes/)
+- [Traefik's official documentation](https://docs.traefik.io)
 
-Read them in detail if you want to deep dive into how things work.
+Read them in details if you want to deep dive into how things work.
 
 
 ## Architecture and outline
 
-Our pipeline follows the architecture and uses the services and tools pictured below.
+Our pipeline uses GitHub for version control, CircleCI for CI/CD, a Google Kubernetes Engine cluster as the deployment
+platform, Traefik as ingress controller and load balancer and Let's Encrypt for a fully automated TLS certificates
+management. The corresponding architecture is pictured below:
 
 ![architecture](architecture.png)
 
-The following sections will describe how to assemble them step by step.
+The following sections will describe how to assemble these components step by step in order for you to reproduce our 
+pipeline on your own environments in just a few minutes!
 
 
 ## Requirements
 
 For that, you will need
-- a Google Cloud account, with full access rights
+- a Google Cloud account, with full access rights to create and configure a Kubernetes cluster
 - a GitHub account, with ability to create and configure projects
-- a CircleCI account linked to your GitHub account, with ability to configure builds
+- a CircleCI account linked to your GitHub account, with ability to configure and run builds
+- to own a domain (e.g., `mywebsite.com`) managed by one of the providers 
+[compatible with Traefik](https://docs.traefik.io/https/acme/#dnschallenge)
 
-The following command-line tools must be installed and configured on your station
+The following command-line tools must be installed and configured on your computer:
 - [gcloud SDK](https://cloud.google.com/sdk/docs/quickstarts)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- htpasswd
 
 Login in gcloud (this command should open a page in your browser asking for access to your Google account):
-```bash
+```shell script
 gcloud auth login
-```
-
-Give Kubernetes admin permissions to your user (required to give traefik special permissions):
-```bash
-kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user [USER_EMAIL]
 ```
 
 
@@ -49,239 +51,89 @@ kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-ad
 ### Deploy a GKE cluster instance on GCP
 
 This can easily be done through the [Cloud Console](https://console.cloud.google.com/kubernetes). The following
-instructions do not assume a particular configuration or size for your cluster.
+instructions do not assume a particular configuration or size for your cluster, except for the HTTP load balancing
+add-on, which must be enabled after creation.
 
 ### Authenticate to the cluster:
 
-```bash
+```shell script
 gcloud container clusters get-credentials [CLUSTER_NAME]
 ```
-
-### Associate static IPs to some of your nodes
-
-Some of the nodes in the cluster will accept incoming internet traffic in order for Traefik to route it. Choose some 
-nodes in your cluster (e.g. 3 nodes) and give them a static IP via the the
-[Cloud Console](https://console.cloud.google.com): 
-`GCP > VPC Network > External IP addresses, dropdown Ephemeral -> Static`. Write down these IPs.
 
 
 ## 2. Traefik
 
-### Create a Rancher API key for Traefik
+### Create a "traefik" namespace in the cluster
 
-In Rancher, click on `Add Environment API Key` in the `Environment API Keys` section of `API > Keys` to create a new key.
-
-In the next screen, write down the `Access key` and `Secret key`. These will be used by Traefik to connect to the Rancher API.
-
-
-### Deploy Traefik in Rancher
-
-In Rancher, pick one of your hosts in `Infrastucture > Hosts` and open the edition menu. Add a `traefik_lb` label with value `true`. In the following steps, we will call `<TRAEFIK_IP>` the IP address of this host.
-
-In AWS, associate a static IP Address to this host (follow the same logic we used to associate a static IP to the Rancher master).
-
-In Rancher, click on `Add Stack` in `Stacks > User`. Name it as you like (e.g., `traefik`) and use the following Docker Compose file as configuration.
-
-Substitute:
-- `<RANCHER_URL>` with Rancher's URL.
-- `<RANCHER_ACCESS_KEY>` with Traefik's Access key (created in the previous step).
-- `<RANCHER_SECRET_KEY>` with Traefik's Secret key (created in the previous step).
-
-```yaml
-version: '2'
-services:
-  traefik:
-    image: traefik:1.6.5
-    command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY>
-    labels:
-      - "io.rancher.scheduler.affinity:host_label=traefik_lb=true"
-    ports:
-      - 80:80
+```shell script
+kubectl create namespace traefik
 ```
 
-The `io.rancher.scheduler.affinity:host_label=traefik_lb=true` label on the `traefik` service will ensure that it is always deployed on the host with IP `<TRAEFIK_IP>`.
+### Import Traefik's Custom Resource Definitions (CRDs) in the cluster
 
-
-### Open port 80 of Rancher hosts
-
-Click on `Security Groups` on the [EC2 Elastic IP Dashboard](https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#Addresses:sort=PublicIp).
-
-Edit the inbound rules of the `rancher-machine` and make port `80` accessible from anywhere.
-
-
-### Configure your DNS to redirect a subdomain to Traefik
-
-For each project you want to host on this platform, pick a subdomain you own and redirect it to your Traefik instance. In the following steps, we will call it `<PROJECT_SUBDOMAIN>`.
-
-In your DNS configuration, you need to following `A` record:
-```
-*.<PROJECT_SUBDOMAIN>     A     <TRAEFIK_IP>
+Apply the [CRD descriptor](crd.yaml):
+```shell script
+kubectl apply -f crd.yaml
 ```
 
-We use [AWS Route 53](https://console.aws.amazon.com/route53/home#hosted-zones:) to manage our domains.
+### Apply the Role-Based Access Control (RBAC) rules required by Traefik
 
-
-## 4. Generate SSL Certificates with Let's Encrypt (optional)
-
-Traefik can generate a Let's Encrypt wildcard SSL certificate for you, provided it can modify your DNS configuration to respond to Let's Encrypt challenge.
-
-### Create a Traefik user on AWS
-
-In the [IAM Users dashboard](https://console.aws.amazon.com/iam/home?region=eu-central-1#/users), click on `Add user`.
-
-Name it as you like, tick `Programmatic access` and go to the next screen.
-
-Give it the `Route53 Full Access` policy in the `Attach existing policies directly` tab.
-
-Validate, review and click on `Create user`.
-
-In the next screen, write down the `Access key ID` and `Secret access key`. These will allow Traefik to use the AWS API.
-
-
-### Redeploy Traefik in Rancher
-
-In Rancher, delete the previous `traefik` stack, then click on `Add Stack` in `Stacks > User`. Use the following Docker Compose file as configuration.
-
-Substitute:
-- `<RANCHER_URL>` with Rancher's URL.
-- `<RANCHER_ACCESS_KEY>` with Traefik's Access key to Rancher (same as before).
-- `<RANCHER_SECRET_KEY>` with Traefik's Secret key to rancher (same as before).
-- `<AWS_ACCESS_KEY>` with Traefik's Access key to AWS (created in the previous step).
-- `<AWS_SECRET_KEY>` with Traefik's Secret key to AWS (created in the previous step).
-- `<AWS_REGION>` the code of your AWS region (can be found in the url when editing your DNS configuration).
-- `<AWS_HOSTED_ZONE_ID>` the id of your Route53 Hosted Zone (can be found in the url when editing your DNS configuration).
-- `<EMAIL>` the email address to register with the SSL certificate.
-- `<PROJECT_SUBDOMAIN>` the domain you chose before.
-
-```yaml
-version: '2'
-services:
-  traefik:
-    image: traefik:1.6.5
-    command: --rancher --rancher.domain=http://<RANCHER_URL> --rancher.endpoint=http://<RANCHER_URL>:8080 --rancher.refreshseconds=5 --rancher.accesskey=<RANCHER_ACCESS_KEY> --rancher.secretkey=<RANCHER_SECRET_KEY> --entryPoints='Name:http Address::80 Redirect.EntryPoint:https' --entryPoints='Name:https Address::443 TLS' --defaultentrypoints='https,http' --acme --acme.entrypoint=https --acme.email=<EMAIL> --acme.storage=acme/acme.json --acme.dnsChallenge --acme.dnsChallenge.provider=route53 --acme.domains='*.<PROJECT_SUBDOMAIN>'
-    environment:
-      - "AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY>"
-      - "AWS_HOSTED_ZONE_ID=<AWS_HOSTED_ZONE_ID>"
-      - "AWS_REGION=<AWS_REGION>"
-      - "AWS_SECRET_ACCESS_KEY=<AWS_SECRET_KEY>"
-    volumes:
-      - /home/acme:/acme
-    ports:
-      - 80:80
-      - 443:443
-    labels:
-      - "io.rancher.scheduler.affinity:host_label=traefik_lb=true"
+Apply the [RBAC descriptor](rbac.yaml):
+```shell script
+kubectl apply -f rbac.yaml
 ```
 
+This will create the RBAC rules, create a service account for Traefik and bind the rules to the service account.
 
-### Open port 443 of Rancher hosts
+### Deploy Traefik in the cluster
 
-Click on `Security Groups` on the [EC2 Elastic IP Dashboard](https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#Addresses:sort=PublicIp).
+Create a secret file with a pair user / password hash. These will be the credentials to use to access Traefik's 
+dashboard.
+```shell script
+htpasswd -bc [FILENAME] [USER] [PASSWORD]
+```
 
-Edit the inbound rules of the `rancher-machine` and make port `443` accessible from anywhere.
+Import the secret into your cluster's traefik namespace:
+```shell script
+kubectl create secret generic traefik-auth --from-file [FILENAME] --namespace=traefik
+```
 
+In order for Traefik to generate wildcard TLS certificates using Let's Encrypt, it must fulfill a DNS challenge. Since 
+our domain is registered with AWS, we use Traefik's Route53 provider to do so (other providers are listed 
+[here](https://docs.traefik.io/https/acme/#dnschallenge)). This provider requires the Access Key ID and the Secret 
+Access Key of an AWS IAM user with sufficient permissions to edit DNS records.
 
-## 5. Docker Registry
+Fill the following placeholders in the [traefik descriptor](traefik.yaml): 
+- `DOMAIN`: the domain you own (e.g., `mywebsite.com`)
+- `ACME_EMAIL_ADDRESS`: the contact email address to use to generate the TLS certificates
+- `AWS_ACCESS_KEY_ID`: the Access Key ID of the AWS IAM user
+- `AWS_SECRET_ACCESS_KEY`: the Secret Access Key of the AWS IAM user
+- `AWS_REGION`: the code of your AWS region (can be found in the url when editing your DNS configuration).
+- `AWS_HOSTED_ZONE_ID`: the ID of the Hosted Zone in Route53 (can be found in the url when editing your DNS configuration)
 
-### Add container registry permissions for the Rancher user on AWS
+Then apply it:
+```shell script
+kubectl apply -f traefik.yaml
+```
 
-In the [IAM Users dashboard](https://console.aws.amazon.com/iam/home?region=eu-central-1#/users), edit the Rancher user you created before and select `Add permissions`. 
+This will:
+- instantiate a Traefik instance using a Deployment
+- expose this Traefik instance on a public IP using a Service of type LoadBalancer
+- configure Traefik's entrypoints to listen to ports 80 (http) and 443 (https)
+- redirect all http (port 80) traffic to the https entrypoint (port 443) using a RedirectScheme middleware
+- expose Traefik's dashboard on the `traefik` subdomain (e.g., `traefik.mywebsite.com`) using an IngressRoute, protected
+with a BasicAuth middleware (using the secret created above)
+- configure a Traefik certificate resolver to generate wildcard certificates on demand
+- create and use the wildcard TLS certificate (e.g., `*.mywebsite.com`) required by the dashboard IngressRoute 
 
-Give it the `AmazonEC2ContainerRegistryFullAccess` policy in the `Attach existing policies directly` tab.
+Wait for a bit and get the public IP associated by GKE to the Traefik service:
+```shell script
+kubectl -n traefik get services
+```
+The IP will eventually be displayed in the "EXTERNAL-IP" column, but it may take a few seconds.
 
+Configure your DNS records manually to redirect all traffic from your domain to this IP (this is an `A` record from 
+`*.mywebsite.com` to the external IP).
 
-### Create a CircleCI user on AWS
-
-In the [IAM Users dashboard](https://console.aws.amazon.com/iam/home?region=eu-central-1#/users), click on `Add user`.
-
-Name it as you like, tick `Programmatic access` and go to the next screen.
-
-Give it the `AmazonEC2ContainerRegistryFullAccess` policy in the `Attach existing policies directly` tab.
-
-Validate, review and click on `Create user`.
-
-In the next screen, write down the `Access key ID` and `Secret access key`. These will allow CircleCI to use the AWS API.
-
-
-### Create a container registry repository in AWS
-
-Contrary to Docker Hub, ECR requires to configure the repository before pushing the first version of your image.
-
-In the [ECS Container Registry dashboard](https://eu-central-1.console.aws.amazon.com/ecs/home?region=eu-central-1#/repositories), click on `Create repository`.
-
-Choose the image name, then validate.
-
-After creation, go to the `Permissions` tab and add statements:
-- A statement `Rancher` with `Pull only actions` allowed for your Rancher user
-- A statement `CircleCI` with `Push/Pull actions` allowed for your CircleCI user
-
-Write down the URI given in the `Repository URI` field. We will refer to it as `<REPOSITORY_URI>` in the following steps. 
-
-
-### Configure container registry access in Rancher 
-
-In Rancher, click on `Add Registry` in `Infrastructure / Registries`. Fill in the following values:
-- Address: the URL of the repository, ie. `<REPOSITORY_URI>` without the image name (finishes with `amazonaws.com`)
-- Username: put anything, this will be generated by the tool configured in the next step
-- Password: put anything, this will be generated by the tool configured in the next step
-
-
-### Configure container registry token renewal in Rancher
-
-In Rancher, open the catalog via `Catalog > All` and search for `ECR Credential Updater`. Specify the access key and secret key for the Rancher user on AWS and select the region you used for your container registry.
-
-
-
-## 6. Continuous integration
-
-### Add a CircleCI build configuration to your project
-
-In your source code, add a `config.yml` file in the `.circleci` directory. It should contain all the build steps to build, test and deploy your project.
-
-At Zenika Labs, we build our projects inside a custom Docker image `zenikalabs/circleci` containing
-- NodeJS and Yarn for unit, integration and end-to-end tests in JavaScript/TypeScript
-- JDK8 and Maven for unit and integration tests in Java
-- Browsers (including Chrome and Firefox) for automated end-to-end tests
-
-Look for instance at the sample project in this repository. We have configured
-- `yarn install`: download and link dependencies
-- `yarn test`: unit tests
-- `yarn build`: build and package
-- `docker build`: build a Docker image containing an instance of Apache serving our app.
-
-Its CircleCI configuration file uses our `zenikalabs/circleci` image and the aforementioned test and build commands.
-
-For it to work, you need to substitute the following placeholders (both created in the previous steps) in `config.yml` and `docker-compose.yml`:
-- `<REPOSITORY_URI>`
-- `<PROJECT_SUBDOMAIN>`
-
-
-### Create a Rancher API key for CircleCI
-
-In Rancher, click on `Add Environment API Key` in the `Environment API Keys` section of `API > Keys` to create a new key.
-
-In the next screen, write down the `Access key` and `Secret key`. These will be used by CircleCI to connect to the Rancher API and deploy services.
-
-
-### Configure CircleCI
-
-In CircleCI, add your project in the build list in the `Add Projects` tab.
-
-In the `Settings` tab, find your project in the `Projects` sub-tab and open its settings.
-
-In `AWS Permission`, put the credentials of the CircleCI user created above. This will allow CircleCI to push images to the Container Registry created before.
-
-In `Environment Variables`, create the following variables. This will allow CircleCI to deploy services on Rancher.
-- RANCHER_URL=`<RANCHER_URL>:8080`
-- RANCHER_ACCESS_KEY= The access key part of the API Key created above
-- RANCHER_SECRET_KEY= The secret key part of the API Key created above
-
-Relaunch the build.
-
-
-## Next steps
-
-We are currently working on the following improvements:
-- Use Traefik in cluster mode to avoid assigning it to a single host (single point of failure)
-- Provide a way to delete stacks automatically when the corresponding branch is deleted
-- Migrate to Rancher 2.0 (over a Kubernetes cluster)
+Traefik's dashboard should now be accessible on the traefik subdomain (e.g., `traefik.mywebsite.com`) and all http
+traffic should be redirected to https with valid Let's Encrypt certificates.
