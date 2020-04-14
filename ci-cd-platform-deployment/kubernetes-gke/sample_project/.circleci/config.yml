@@ -2,61 +2,44 @@ version: 2
 jobs:
   build:
     docker:
-      - image: zenikalabs/circleci:1
-    working_directory: ~/build
+      - image: google/cloud-sdk
+    working_directory: /home/circleci/myapp
     steps:
       - checkout
-
       - setup_remote_docker
-
       - run:
-          name: Download dependencies (front)
-          working_directory: front
-          command: yarn install
-
-      - run:
-          name: Front tests
-          working_directory: front
-          command: yarn test
-
-      - run:
-          name: Build Docker image (front)
-          working_directory: front
-          command: yarn build && docker build -t front .
-
-      - run:
-          name: Deploy app to testing environment
-          working_directory: .circleci
+          name: Build docker image
           command: |
-              $(aws ecr get-login --no-include-email --region eu-central-1)
-              export VERSION=${CIRCLE_BRANCH}
-              export STACK_NAME=${CIRCLE_BRANCH}
-              docker tag front <REPOSITORY_URI>:${VERSION}
-              docker push <REPOSITORY_URI>:${VERSION}
-              rancher-compose --file docker-compose.yml -p ${STACK_NAME} up --force-upgrade --pull -d
-              rancher-compose --file docker-compose.yml -p ${STACK_NAME} up --upgrade --confirm-upgrade -d
-
+            export VERSION=${CIRCLE_BRANCH}-${CIRCLE_SHA1}
+            docker build -t ${GCP_REGISTRY}/myapp:${VERSION} .
       - run:
-          name: End-to-end Tests
-          working_directory: front
-          command:  |
-              export NODE_ENV=ci
-              export APP_URL=http://${CIRCLE_BRANCH}.<PROJECT_SUBDOMAIN>
-              yarn e2e
-
-      - run:
-          name: Deploy app to production
-          working_directory: .circleci
+          name: Authenticate with GCP
           command: |
-              if [ "${CIRCLE_BRANCH}" == "master" ]
-              then
-                  $(aws ecr get-login --no-include-email --region eu-central-1)
-                  export VERSION=latest
-                  export STACK_NAME=prod
-                  docker tag front <REPOSITORY_URI>:${VERSION}
-                  docker push <REPOSITORY_URI>:${VERSION}
-                  rancher-compose --file docker-compose.yml -p ${STACK_NAME} up --force-upgrade --pull -d
-                  rancher-compose --file docker-compose.yml -p ${STACK_NAME} up --upgrade --confirm-upgrade -d
-              else
-                  echo "Not on branch master, skipping."
-              fi
+            echo ${GCP_AUTH} > /home/circleci/gcp-key.json
+            gcloud auth activate-service-account --key-file /home/circleci/gcp-key.json
+            gcloud --quiet config set project ${GCP_PROJECT}
+            gcloud config set compute/zone ${GCP_ZONE}
+            gcloud --quiet container clusters get-credentials ${GCP_KUBE_CLUSTER}
+      - run:
+          name: Push docker image
+          command: |
+            gcloud auth configure-docker --quiet
+            export VERSION=${CIRCLE_BRANCH}-${CIRCLE_SHA1}
+            docker push ${GCP_REGISTRY}/myapp:${VERSION}
+      - run:
+          name: Install envsubst
+          command: |
+            apt-get install -qq -y gettext
+      - run:
+          name: Deploy to GKE
+          command: |
+            export INSTANCE_NAME=${CIRCLE_BRANCH}
+            export VERSION=${CIRCLE_BRANCH}-${CIRCLE_SHA1}
+            envsubst < myapp-template.yaml > myapp.yaml
+            kubectl apply -f myapp.yaml
+
+workflows:
+  version: 2
+  build-test-and-deploy:
+    jobs:
+      - build
