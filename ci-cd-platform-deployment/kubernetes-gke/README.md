@@ -273,6 +273,7 @@ Relaunch the build: the master branch is deployed on the `master` subdomain (e.g
 
 Create branches on your GitHub repository and push them... and let the magic happen! From source code to production in 
 less than 20 secondes!
+
 ![Screenshot CircleCI](screenshot_circleci.png)
 
 
