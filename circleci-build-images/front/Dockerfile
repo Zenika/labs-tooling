@@ -1,9 +1,9 @@
-FROM circleci/node:9-browsers
+FROM circleci/node:12-browsers
 
 USER root
 
 RUN npm install -g sonarqube-scanner \
-    && npm install -g typescript@2.9.2 \
+    && npm install -g typescript@3.4.5 \
     && npm cache clean --force
 
 ENV NODE_PATH "/usr/local/lib/node_modules/"
