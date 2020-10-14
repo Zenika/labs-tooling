@@ -16,8 +16,8 @@ spec:
       name: http
       port: 80
 ---
-kind: Deployment
 apiVersion: apps/v1
+kind: Deployment
 metadata:
   namespace: whoami
   name: whoami-${INSTANCE_NAME}
