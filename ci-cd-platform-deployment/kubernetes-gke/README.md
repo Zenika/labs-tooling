@@ -100,17 +100,24 @@ kubectl create secret generic traefik-auth --from-file [FILENAME] --namespace=tr
 ```
 
 In order for Traefik to generate wildcard TLS certificates using Let's Encrypt, it must fulfill a DNS challenge. Since 
-our domain is registered with AWS, we use Traefik's Route53 provider to do so (other providers are listed 
-[here](https://docs.traefik.io/https/acme/#dnschallenge)). This provider requires the Access Key ID and the Secret 
-Access Key of an AWS IAM user with sufficient permissions to edit DNS records.
+our domain is registered with Google Domains and our DNS is handled by Google Cloud DNS, we use Traefik's Google Cloud
+provider to do so (other providers are listed [here](https://docs.traefik.io/https/acme/#dnschallenge)). This provider
+requires the key of a GCP Service Account with DNS write access to edit DNS records. This service account and its key
+can be generated through the [Cloud Console](https://console.cloud.google.com/iam-admin/serviceaccounts). 
+
+Note that if you opt for another provider, you will probably need to adapt or remove the `volume`, `volumeMount` and 
+environment variables parts of the [traefik descriptor](traefik.yaml) in order to pass the correct configuration to 
+Traefik.
+
+Import the key file into your cluster's traefik namespace as a secret with key `traefik-service-account`:
+```shell script
+kubectl create secret generic traefik-service-account --from-file=traefik-service-account.json=[FILENAME] --namespace=traefik
+```
 
 Fill the following placeholders in the [traefik descriptor](traefik.yaml): 
 - `DOMAIN`: the domain you own (e.g., `mywebsite.com`)
 - `ACME_EMAIL_ADDRESS`: the contact email address to use to generate the TLS certificates
-- `AWS_ACCESS_KEY_ID`: the Access Key ID of the AWS IAM user
-- `AWS_SECRET_ACCESS_KEY`: the Secret Access Key of the AWS IAM user
-- `AWS_REGION`: the code of your AWS region (can be found in the url when editing your DNS configuration).
-- `AWS_HOSTED_ZONE_ID`: the ID of the Hosted Zone in Route53 (can be found in the url when editing your DNS configuration)
+- `GCE_PROJECT`: the name of the Google Cloud project
 
 Then apply it:
 ```shell script

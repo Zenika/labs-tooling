@@ -50,16 +50,14 @@ spec:
             - --providers.kubernetescrd
             - --certificatesResolvers.letsencrypt.acme.storage=/acme/acme.json
             - --certificatesResolvers.letsencrypt.acme.email=[ACME_EMAIL_ADDRESS]
-            - --certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=route53
+            - --certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=gcloud
           env:
-            - name: AWS_ACCESS_KEY_ID
-              value: [AWS_ACCESS_KEY_ID]
-            - name: AWS_SECRET_ACCESS_KEY
-              value: [AWS_SECRET_ACCESS_KEY]
-            - name: AWS_HOSTED_ZONE_ID
-              value: [AWS_HOSTED_ZONE_ID]
-            - name: AWS_REGION
-              value: [AWS_REGION]
+            - name: GCE_PROJECT
+              value: [GCE_PROJECT]
+            - name: GCE_DOMAIN
+              value: [DOMAIN]
+            - name: GCE_SERVICE_ACCOUNT_FILE
+              value: /service-account/traefik-service-account.json
           ports:
             - name: http
               containerPort: 80
@@ -68,6 +66,9 @@ spec:
           volumeMounts:
             - name: acme
               mountPath: /acme
+            - name: traefik-service-account
+              mountPath: /service-account
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /ping
@@ -76,6 +77,10 @@ spec:
             httpGet:
               path: /ping
               port: 8080
+      volumes:
+        - name: traefik-service-account
+          secret:
+            secretName: traefik-service-account
   volumeClaimTemplates:
     - metadata:
         name: acme
