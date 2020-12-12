@@ -66,3 +66,30 @@ spec:
     domains:
       - main: "*.myapp.[DOMAIN]"
 ---
+########################################################################################################################
+## Kubernetes ingresses with annotations can be used instead of Traefik's IngressRoute Custom Resource.               ##
+## In this case, IngressRoute spec fields must be replaced by "traefik.ingress.kubernetes.io/router.x.y.z"            ##
+## annotations, where x.y.z is the YAML path to each field. Below is an example of how to use an Ingress to replace   ##
+## the IngressRoute used above.                                                                                       ##
+########################################################################################################################
+#apiVersion: networking.k8s.io/v1beta1
+#kind: Ingress
+#metadata:
+#  namespace: myapp
+#  name: myapp-${INSTANCE_NAME}
+#  labels:
+#    app.kubernetes.io/name: myapp
+#    app.kubernetes.io/instance: ${INSTANCE_NAME}
+#  annotations:
+#    traefik.ingress.kubernetes.io/router.entrypoints: https
+#    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+#    traefik.ingress.kubernetes.io/router.tls.domains.0.main: "*.myapp.[DOMAIN]"
+#spec:
+#  rules:
+#    - host: "${INSTANCE_NAME}.myapp.[DOMAIN]"
+#      http:
+#        paths:
+#          - backend:
+#              serviceName: myapp-${INSTANCE_NAME}
+#              servicePort: 80
+#---
