@@ -1,0 +1,45 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: google/cloud-sdk
+    working_directory: /home/circleci/myapp
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build docker image
+          command: |
+            export VERSION=${CIRCLE_BRANCH}-${CIRCLE_SHA1}
+            docker build -t ${GCP_REGISTRY}/myapp:${VERSION} .
+      - run:
+          name: Authenticate with GCP
+          command: |
+            echo ${GCP_AUTH} > /home/circleci/gcp-key.json
+            gcloud auth activate-service-account --key-file /home/circleci/gcp-key.json
+            gcloud --quiet config set project ${GCP_PROJECT}
+            gcloud config set compute/zone ${GCP_ZONE}
+            gcloud --quiet container clusters get-credentials ${GCP_KUBE_CLUSTER}
+      - run:
+          name: Push docker image
+          command: |
+            gcloud auth configure-docker --quiet
+            export VERSION=${CIRCLE_BRANCH}-${CIRCLE_SHA1}
+            docker push ${GCP_REGISTRY}/myapp:${VERSION}
+      - run:
+          name: Install envsubst
+          command: |
+            apt-get install -qq -y gettext
+      - run:
+          name: Deploy to GKE
+          command: |
+            export INSTANCE_NAME=${CIRCLE_BRANCH}
+            export VERSION=${CIRCLE_BRANCH}-${CIRCLE_SHA1}
+            envsubst < myapp-template.yaml > myapp.yaml
+            kubectl apply -f myapp.yaml
+
+workflows:
+  version: 2
+  build-test-and-deploy:
+    jobs:
+      - build

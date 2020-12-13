@@ -1,0 +1,153 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: traefik
+  name: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: traefik
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+    - protocol: TCP
+      name: https
+      port: 443
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: traefik
+  name: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+spec:
+  replicas: 1
+  serviceName: traefik
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traefik
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: traefik
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      containers:
+        - name: traefik
+          image: traefik:v2.3.5
+          args:
+            - --ping
+            - --api.dashboard
+            - --api.insecure=false
+            - --entrypoints.http.Address=:80
+            - --entrypoints.https.Address=:443
+            - --providers.kubernetesingress
+            - --providers.kubernetescrd
+            - --certificatesResolvers.letsencrypt.acme.storage=/acme/acme.json
+            - --certificatesResolvers.letsencrypt.acme.email=[ACME_EMAIL_ADDRESS]
+            - --certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=gcloud
+          env:
+            - name: GCE_PROJECT
+              value: [GCE_PROJECT]
+            - name: GCE_DOMAIN
+              value: [DOMAIN]
+            - name: GCE_SERVICE_ACCOUNT_FILE
+              value: /service-account/traefik-service-account.json
+          ports:
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
+          volumeMounts:
+            - name: acme
+              mountPath: /acme
+            - name: traefik-service-account
+              mountPath: /service-account
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+      volumes:
+        - name: traefik-service-account
+          secret:
+            secretName: traefik-service-account
+  volumeClaimTemplates:
+    - metadata:
+        name: acme
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  namespace: traefik
+  name: traefik-auth
+spec:
+  basicAuth:
+    secret: traefik-auth
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  namespace: traefik
+  name: traefik-dashboard
+  labels:
+    app.kubernetes.io/name: traefik-dashboard
+spec:
+  entryPoints:
+    - https
+  routes:
+    - match: Host(`traefik.[DOMAIN]`)
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+      middlewares:
+        - name: traefik-auth
+  tls:
+    certResolver: letsencrypt
+    domains:
+      - main: "*.[DOMAIN]"
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  namespace: traefik
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+    port: "443"
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: http-to-https
+  namespace: traefik
+spec:
+  entryPoints:
+    - http
+  routes:
+    - match: HostRegexp(`{any:.+}`)
+      kind: Rule
+      services:
+        - name: noop@internal
+          kind: TraefikService
+      middlewares:
+        - name: redirect-https
+          namespace: traefik
+---
