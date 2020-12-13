@@ -5,14 +5,38 @@ At Zenika Labs, our goal is to deliver proofs of concept or minimum viable produ
 compromising on quality.
 
 This guide describes how to setup, in probably less than an hour, the *feature branch* workflow we use everyday to 
-build, test and deploy our applications. It uses Google's managed Kubernetes (GKE) as well as CircleCI and others 
-Google Cloud services.
+build, test and deploy our applications. It uses Google's managed Kubernetes (GKE) as well as CircleCI, Traefik and 
+others Google Cloud services.
 
-Each of our projects has its own namespace in Kubernetes. Every new feature is implemented in a new, short-lived branch.
-As shown in the provided [sample project](sample_project), our CI/CD pipeline allows us to create and maintain an
-application instance per feature branch, accessible from anywhere (web) and at anytime.
-This scheme goes in the direction of our *Definition of Done*, which requires a code review and a validation from a
-Product Owner on a production-like environment before deploying to production.
+**What is Kubernetes?**
+> Kubernetes, also known as K8s, is an open-source system for automating deployment, scaling, and management of 
+containerized applications. In the past years, Kubernetes has become the de-facto industrial standard to deploy containers on-premise or in the
+cloud.
+ 
+If you have never used Kubernetes before, this guide is probably not for you. Start by 
+[learning a bit about Kubernetes](https://kubernetes.io/docs/concepts/overview/) first.
+
+**What is CircleCI?**
+> CircleCI is a cloud-native continuous integration and continuous delivery (CI/CD) platform. It integrates with GitHub
+and Bitbucket and runs a configured pipeline on each commit. Think Jenkins multibranch pipelines on steroids, in the 
+cloud, and fully managed for you.
+ 
+If you have never used CircleCI before, welcome aboard and enjoy the [free plan](https://circleci.com/pricing/)!
+
+**What is Traefik?**
+> Traefik is a dynamic, modern, open-source Edge Router that automatically inspects your infrastructure to discover 
+services and how to route traffic to them. Traefik is natively compliant with every major cluster technology, such as 
+Kubernetes, Docker, Docker Swarm, AWS, Mesos, Marathon... and even bare metal! Used as an ingress provider in 
+Kubernetes, it is probably a drop-in replacement for the default provider and brings awesome features such as automated
+TLS certificate management via Let's Encrypt, middlewares, plugins...
+
+If you have never used Traefik before, welcome aboard and enjoy the ride (you will)!
+
+At Zenika Labs, each of our projects has its own namespace in a shared, autoscaling Kubernetes cluster. Every new 
+feature is implemented in a new, short-lived branch. As shown later with the [sample project](sample_project), our 
+CI/CD pipeline allows us to create and maintain an application instance per feature branch, accessible from anywhere 
+(web) and at anytime. This scheme goes in the direction of our *Definition of Done*, which requires a code review and a
+validation from a Product Owner on a production-like environment before deploying to production.
 
 The following guide contains a lot of data and commands gathered from the following resources:
 - [Kubernetes' Quickstart](https://cloud.google.com/kubernetes-engine/docs/quickstart)
@@ -24,13 +48,19 @@ Read them in details if you want to deep dive into how things work.
 ## Architecture and outline
 
 Our pipeline uses GitHub for version control, CircleCI for CI/CD, a Google Kubernetes Engine cluster as the deployment
-platform, Traefik as ingress controller and load balancer and Let's Encrypt for a fully automated TLS certificates
-management. The corresponding architecture is pictured below:
+platform, Traefik as ingress controller and load balancer and Let's Encrypt for a fully automated and free TLS 
+certificates management. The corresponding architecture is pictured below:
 
 ![architecture](architecture.png)
 
-The following sections will describe how to assemble these components step by step in order for you to reproduce our 
-pipeline on your own environments in just a few minutes!
+Everytime a developers pushes a new feature branch on GitHub, the platform builds it and deploys it to an isolated,
+short-lived environment (`App 1`, ..., `App n` in the picture above). This new, separate instance of the app is made
+accessible on the web with a dedicated URL and a TLS certificate, allowing the team and our users to test it in a 
+production-like environment. In this setup `master` in just another instance of the app which can act as an integration
+environment.
+
+The following sections will describe how to assemble step by step the different components pictured above in order to 
+reproduce our pipeline on your own environments in about an hour.
 
 
 ## Requirements
