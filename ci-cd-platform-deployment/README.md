@@ -9,12 +9,12 @@ build, test and deploy our applications. It uses Google's managed Kubernetes (GK
 others Google Cloud services.
 
 **What is Kubernetes?**
-> Kubernetes, also known as K8s, is an open-source system for automating deployment, scaling, and management of 
-containerized applications. In the past years, Kubernetes has become the de-facto industrial standard to deploy containers on-premise or in the
-cloud.
+> Kubernetes, also known as k8s, is an open-source system for automating deployment, scaling, and management of 
+containerized applications. In the past years, Kubernetes has become the de-facto industrial standard to deploy 
+containers on-premise or in the cloud.
  
-If you have never used Kubernetes before, this guide is probably not for you. Start by 
-[learning a bit about Kubernetes](https://kubernetes.io/docs/concepts/overview/) first.
+If you have never used Kubernetes before, this guide will probably feel a bit too hard. You may start by
+[reading a bit about Kubernetes](https://kubernetes.io/docs/concepts/overview/) first.
 
 **What is CircleCI?**
 > CircleCI is a cloud-native continuous integration and continuous delivery (CI/CD) platform. It integrates with GitHub
@@ -24,11 +24,11 @@ cloud, and fully managed for you.
 If you have never used CircleCI before, welcome aboard and enjoy the [free plan](https://circleci.com/pricing/)!
 
 **What is Traefik?**
-> Traefik is a dynamic, modern, open-source Edge Router that automatically inspects your infrastructure to discover 
-services and how to route traffic to them. Traefik is natively compliant with every major cluster technology, such as 
-Kubernetes, Docker, Docker Swarm, AWS, Mesos, Marathon... and even bare metal! Used as an ingress provider in 
-Kubernetes, it is probably a drop-in replacement for the default provider and brings awesome features such as automated
-TLS certificate management via Let's Encrypt, middlewares, plugins...
+> Traefik Proxy is a dynamic, modern, open-source Edge Router that automatically inspects your infrastructure to
+discover services and how to route traffic to them. Traefik is natively compliant with every major cluster technology, 
+such as Kubernetes, Docker, Docker Swarm, AWS, Mesos, Marathon... and even bare metal! Used as an ingress controller in 
+Kubernetes, it is probably a drop-in replacement for the one you already use (if any), and brings awesome features such 
+as automated TLS certificate management via Let's Encrypt, middlewares, plugins...
 
 If you have never used Traefik before, welcome aboard and enjoy the ride (you will)!
 
@@ -164,14 +164,14 @@ kubectl apply -f traefik.yaml
 This will:
 - instantiate a Traefik instance using a Deployment
 - expose this Traefik instance on a public IP using a Service of type LoadBalancer
-- configure Traefik's entrypoints to listen to ports 80 (http) and 443 (https)
-- redirect all http (port 80) traffic to the https entrypoint (port 443) using a RedirectScheme middleware
+- configure Traefik's entrypoints to listen to ports 80 (HTTP) and 443 (HTTPS)
+- redirect all HTTP (port 80) traffic to the HTTPS entrypoint (port 443) using a RedirectScheme middleware
 - expose Traefik's dashboard on the `traefik` subdomain (e.g., `traefik.mywebsite.com`) using an IngressRoute, protected
 with a BasicAuth middleware (using the secret created above)
 - configure a Traefik certificate resolver to generate wildcard certificates on demand
 - create and use the wildcard TLS certificate (e.g., `*.mywebsite.com`) required by the dashboard IngressRoute 
 
-Wait for a bit and get the public IP associated by GKE to the Traefik service:
+Wait for a bit and get the public IP associated by GKE to the Traefik Service:
 ```shell script
 kubectl -n traefik get services
 ```
@@ -180,8 +180,8 @@ The IP will eventually be displayed in the "EXTERNAL-IP" column, but it may take
 Configure your DNS records manually to redirect all traffic from your domain to this IP (this is an `A` record from 
 `*.mywebsite.com` to the external IP).
 
-Traefik's dashboard should now be accessible on the traefik subdomain (e.g., `traefik.mywebsite.com`) and all http
-traffic should be redirected to https with valid Let's Encrypt certificates.
+Traefik's dashboard should now be accessible on the traefik subdomain (e.g., `traefik.mywebsite.com`) and all HTTP
+traffic should be redirected to HTTPS with valid Let's Encrypt certificates.
 
 
 ## 3. A first "whoami" toy project
@@ -191,7 +191,7 @@ subdomains. Suppose we chose to dedicate the `whoami` subdomain (e.g., `whoami.m
 is to expose the master version of the app on a `master` subdomain (e.g., `master.whoami.mywebsite.com`) and the changes
 of a `feature1` branch on the `feature1` subdomain (e.g., `feature1.whoami.mywebsite.com`).
 
-For this example, we will use the containous/whoami docker image as a dummy web application, which only serves some 
+For this example, we will use the containous/whoami Docker image as a dummy web application, which only serves some 
 information about the server and the received request for any request on port 80. 
 
 ### Create a namespace for the project
@@ -210,10 +210,10 @@ Then apply it:
 kubectl apply -f whoami-master.yaml
 ```
 
-This will instantiate 3 instances of the whoami pod, create a service to load balance between them, and expose this
-service through an IngressRoute. Notice the use of the `traefik` TLS certificate resolver created in step 2, the 
+This will instantiate 3 instances of the `whoami` Pod, create a Service to load balance between them, and expose this
+Service through an IngressRoute. Notice the use of the `traefik` TLS certificate resolver created in step 2, the 
 request for a `*.whoami.[DOMAIN]` wildcard certificate and the use of the `master.whoami.[DOMAIN]` Host rule to route
-traffic to this URL to our service. In just a few seconds, the certificate is generated and your application server is
+traffic to this URL to our Service. In just a few seconds, the certificate is generated and your application server is
 exposed securely on the `master.whoami` of your domain (try it!). 
 
 ### Deploy the feature1 branch
@@ -226,17 +226,17 @@ Then apply it:
 kubectl apply -f whoami-branch1.yaml
 ```
 
-This will instantiate 3 new instances of the pod, create a new service to load balance between them, and expose this
-service through an IngressRoute. Notice again the use of the `traefik` TLS certificate resolver created in step 2, the 
+This will instantiate 3 new instances of the Pod, create a new Service to load balance between them, and expose this
+Service through an IngressRoute. Notice again the use of the `traefik` TLS certificate resolver created in step 2, the 
 request for a `*.whoami.[DOMAIN]` wildcard certificate (which is already managed by Traefik and will be reused) and the 
-use of the `branch1.whoami.[DOMAIN]` Host rule to route traffic to this URL to our service. Your new app instance,
+use of the `branch1.whoami.[DOMAIN]` Host rule to route traffic to this URL to our Service. Your new app instance,
 distinct from the master environment is already live (try it!). 
 
 ### Use a template
 
 Notice the very few differences between the [whoami-master](whoami-master.yaml) and the 
 [whoami-branch1](whoami-branch1.yaml) descriptors: all occurences of `master` have simply be replaced by `branch1`. In 
-real world use cases, the docker image will probably be different too.
+real world use cases, the Docker image will probably be different too.
 
 Take a look at the [whoami-template descriptor template](whoami-template.yaml) file. Env-like placeholders (e.g., 
 `${INSTANCE_NAME}`) are used. We will use the `envsubst` tool to instantiate our template.
@@ -255,8 +255,8 @@ kubectl apply -f whoami-branch2.yaml
 
 Quick, your `branch2` instance is already up!
 
-The `envsubst` approach will get you quite far, but if you need a more advanced templating engine (and much more), look
-into [Kustomize](https://github.com/kubernetes-sigs/kustomize) or [Helm](https://helm.sh/).
+The `envsubst` approach will get you quite far, but look into [Kustomize](https://github.com/kubernetes-sigs/kustomize)
+or [Helm](https://helm.sh/) if you need a more advanced configuration management tool.
 
 
 
@@ -267,7 +267,7 @@ pipeline. Suppose we chose to dedicate the `myapp` subdomain (e.g., `myapp.myweb
 is to expose any branch X on the X subdomain (e.g., branch `feat1` exposed on `feat1.myapp.mywebsite.com`, `feat2`
 exposed on `feat2.myapp.mywebsite.com`, etc.).
 
-For this example, we will build our own docker image in a CircleCI pipeline. For the sake of simplicity, this guide will
+For this example, we will build our own Docker image in a CircleCI pipeline. For the sake of simplicity, this guide will
 use the same containous/whoami image, but feel free to build your own for real! 
 
 ### Create a namespace for the project
