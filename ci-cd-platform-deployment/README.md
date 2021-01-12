@@ -6,7 +6,7 @@ compromising on quality.
 
 This guide describes how to setup, in probably less than an hour, the *feature branch* workflow we use everyday to 
 build, test and deploy our applications. It uses Google's managed Kubernetes (GKE) as well as CircleCI, Traefik and 
-others Google Cloud services.
+other Google Cloud services.
 
 **What is Kubernetes?**
 > Kubernetes, also known as k8s, is an open-source system for automating deployment, scaling, and management of 
@@ -49,7 +49,7 @@ Read them in details if you want to deep dive into how things work.
 
 Our pipeline uses GitHub for version control, CircleCI for CI/CD, a Google Kubernetes Engine cluster as the deployment
 platform, Traefik as ingress controller and load balancer and Let's Encrypt for a fully automated and free TLS 
-certificates management. The corresponding architecture is pictured below:
+certificate management. The corresponding architecture is pictured below:
 
 ![architecture](architecture.png)
 
@@ -317,7 +317,7 @@ descriptor template.
 Relaunch the build: the master branch is deployed on the `master` subdomain (e.g., `master.myapp.mywebsite.com`).
 
 Create branches on your GitHub repository and push them... and let the magic happen! From source code to production in 
-less than 20 secondes!
+less than 20 seconds!
 
 ![Screenshot CircleCI](screenshot_circleci.png)
 
