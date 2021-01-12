@@ -1,25 +1,51 @@
 # CI/CD Platform Deployment
 
-As people start new projects, they usually waste precious time deploying and configuring a CI/CD pipeline from scratch.
+As teams start new projects, they usually waste precious time deploying and configuring a CI/CD pipeline from scratch.
 At Zenika Labs, our goal is to deliver proofs of concept or minimum viable products as efficiently as possible, without
 compromising on quality.
 
-This guide describes how to setup, in probably less than an hour, the *feature branch* workflow we use everyday to 
-build, test and deploy our applications. It uses Google's managed Kubernetes (GKE) as well as CircleCI, Traefik and 
-other Google Cloud services.
+Our teams usually work on short-lived (from a few minutes to a few hours) *feature branches*, with a strong focus on 
+technical/functional exploration and quick iterations with the Product Owner. We expect our infrastructure to be able to
+deploy a new version of the product in a few minutes, but also to dynamically deploy an instance for each active feature
+branch on each Git push. These production-like instances, accessible from anywhere (web) and at any time, are targeted 
+by automated end-to-end tests, used by the Product Owner to try new features, and sometimes showed to the end users to 
+validate or invalidate new concepts and ideas.
+
+We work on a large range of technical stacks and on very diverse products, from static websites to complex event-driven
+microservices architectures. We need to deploy both stateless and stateful workloads, some very light such as Node.js 
+backends, others more compute or data-intensive such as Kafka clusters. Build processes also vary from trivial to very 
+complex in the case of large microservice architectures in a monorepo.
+
+In any case, our job is not to build or maintain infrastructures, but rather to deliver software. This is why we want to
+reuse most of our tooling across projects and need language, architecture and size-agnostic services. Moreover, the
+price of most managed services for CI/CD are so low compared to a developer daily cost that there is no actual reason 
+for us not to use them extensively and focus our precious time on more useful work.
+
+This guide describes how to set up, in probably *less than an hour*, the infrastructure supporting the development 
+workflow we use every day to build, test and deploy our projects. For all the reasons listed above and after a lot of 
+investigation, we settled on Google's managed Kubernetes (GKE) as well as CircleCI, Traefik and other Google Cloud 
+services.
 
 **What is Kubernetes?**
 > Kubernetes, also known as k8s, is an open-source system for automating deployment, scaling, and management of 
 containerized applications. In the past years, Kubernetes has become the de-facto industrial standard to deploy 
 containers on-premise or in the cloud.
- 
-If you have never used Kubernetes before, this guide will probably feel a bit too hard. You may start by
+
+We use a shared, autoscaling Kubernetes cluster as an all-purpose (and now quite standard) deployment target. Each of 
+our projects has its own namespace, with resources quotas et closed network boundaries.
+
+If you have never used Kubernetes before, this guide will probably feel a bit too hard to follow. You may start by
 [reading a bit about Kubernetes](https://kubernetes.io/docs/concepts/overview/) first.
+
 
 **What is CircleCI?**
 > CircleCI is a cloud-native continuous integration and continuous delivery (CI/CD) platform. It integrates with GitHub
 and Bitbucket and runs a configured pipeline on each commit. Think Jenkins multibranch pipelines on steroids, in the 
 cloud, and fully managed for you.
+
+We chose CircleCI as a managed, modern and reliable alternative to Jenkins and prefer it over TravisCI or GitHub Actions 
+for its best-in-class performance and ability to configure and run workflows on large polyglot monorepos requiring 
+advanced caching mechanisms.
  
 If you have never used CircleCI before, welcome aboard and enjoy the [free plan](https://circleci.com/pricing/)!
 
@@ -30,15 +56,13 @@ such as Kubernetes, Docker, Docker Swarm, AWS, Mesos, Marathon... and even bare 
 Kubernetes, it is probably a drop-in replacement for the one you already use (if any), and brings awesome features such 
 as automated TLS certificate management via Let's Encrypt, middlewares, plugins...
 
+Traefik is the cornerstone of our platform, allowing new instances to be deployed and made accessible over `https` 
+without any human intervention. 
+
 If you have never used Traefik before, welcome aboard and enjoy the ride (you will)!
 
-At Zenika Labs, each of our projects has its own namespace in a shared, autoscaling Kubernetes cluster. Every new 
-feature is implemented in a new, short-lived branch. As shown later with the [sample project](sample_project), our 
-CI/CD pipeline allows us to create and maintain an application instance per feature branch, accessible from anywhere 
-(web) and at anytime. This scheme goes in the direction of our *Definition of Done*, which requires a code review and a
-validation from a Product Owner on a production-like environment before deploying to production.
 
-The following guide contains a lot of data and commands gathered from the following resources:
+The following guide contains some data and commands gathered from the following resources:
 - [Kubernetes' Quickstart](https://cloud.google.com/kubernetes-engine/docs/quickstart)
 - [Traefik's official documentation](https://docs.traefik.io)
 
@@ -392,5 +416,10 @@ workflows:
 
 ## Conclusion
 
-As of this writing, we have been using these tools and techniques for all our projects at Zenika Labs for more than a 
-year. We are very happy about it. Feel free to use it, share it, suggest improvements or ask any question!
+For a toy project, the cost of this infrastructure is about $100 a month. For real-world projects with large 
+architectures we average $500 per project per month, and the *pay-as-you-go* pricing model of the services we use 
+guarantees this cost to be quite linear. This might look like a lot, but in fact it is ridiculously low when you take
+into account the billable time not spent on maintaining this type of platform ourselves (or being slowed down by it!).
+
+As of this writing, we have been using these tools and techniques for all our projects at Zenika Labs for more than two
+years. Feel free to use it, share it, suggest improvements or ask any question!
