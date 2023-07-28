@@ -180,9 +180,12 @@ Fill the following placeholders in the [traefik descriptor](traefik.yaml):
 - `ACME_EMAIL_ADDRESS`: the contact email address to use to generate the TLS certificates
 - `GCE_PROJECT`: the name of the Google Cloud project
 
+> a script is at your disposal to create the taraefik-apply.yaml file from the traefik.yaml template, this script needs as input the values of the variables (below) and then it will take care of replacing everything
+
 Then apply it:
 ```shell script
-kubectl apply -f traefik.yaml
+sh scripts/traefik-apply.sh
+kubectl apply -f traefik-apply.yaml
 ```
 
 This will:

@@ -39,7 +39,7 @@ spec:
       serviceAccountName: traefik-ingress-controller
       containers:
         - name: traefik
-          image: traefik:v2.3.5
+          image: traefik:v2.10.4
           args:
             - --ping
             - --api.dashboard
@@ -51,6 +51,9 @@ spec:
             - --certificatesResolvers.letsencrypt.acme.storage=/acme/acme.json
             - --certificatesResolvers.letsencrypt.acme.email=[ACME_EMAIL_ADDRESS]
             - --certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=gcloud
+            - --certificatesResolvers.letsencrypt-tls.acme.storage=/acme/acme-tls.json
+            - --certificatesResolvers.letsencrypt-tls.acme.email=[ACME_EMAIL_ADDRESS]
+            - --certificatesResolvers.letsencrypt-tls.acme.tlschallenge=true
           env:
             - name: GCE_PROJECT
               value: [GCE_PROJECT]
@@ -69,6 +72,13 @@ spec:
             - name: traefik-service-account
               mountPath: /service-account
               readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 1000m
+              memory: 100Mi
           readinessProbe:
             httpGet:
               path: /ping
