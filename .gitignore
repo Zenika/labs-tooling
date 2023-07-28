@@ -1,6 +1,6 @@
 .idea
 zenika-labs-sa.json
-
+service-account-traefik.json
 
 ### Terraform ###
 # Local .terraform directories
