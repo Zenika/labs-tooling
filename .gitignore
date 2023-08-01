@@ -1,7 +1,7 @@
 .idea
 zenika-labs-sa.json
-
-
+traefik-apply.yaml
+secrets
 ### Terraform ###
 # Local .terraform directories
 **/.terraform/*
